@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Vulnerable App - Home</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .box { border: 1px dashed #c00; padding: 12px; margin: 12px 0; }
+  </style>
+</head>
+<body>
+  <h1>Vulnerable App (demo)</h1>
+
+  <p>Logged in as: <%= user && user.username ? user.username : 'guest' %> (role: <%= user.role %>)</p>
+
+  <nav>
+  <a href="/">Home</a> |
+  <a href="/search">Search</a> |
+  <a href="/user/accounts">User accounts</a> |
+  <a href="/admin/accounts">Admin accounts</a> |
+  <% if (user && user.username) { %>
+    <!-- forma šalje POST na /logout -->
+    <form method="post" action="/logout" style="display:inline; margin:0; padding:0;">
+      <button type="submit">Logout</button>
+    </form>
+  <% } else { %>
+    <a href="/login">Login</a>
+  <% } %>
+</nav>
+
+
+  <div class="box">
+    <h2>Vulnerability toggles</h2>
+    <form method="post" action="/toggle">
+      <label>
+        <input type="checkbox" name="xss" <%= toggles.xss ? 'checked' : '' %> />
+        Reflected XSS enabled
+      </label><br/>
+      <label>
+        <input type="checkbox" name="bac" <%= toggles.bac ? 'checked' : '' %> />
+        Broken Access Control enabled
+      </label><br/><br/>
+      <button type="submit">Save settings</button>
+    </form>
+    <p><small>Toggle vulnerability on/off per-session. Defaults: XSS = <strong><%= toggles.xss %></strong>, BAC = <strong><%= toggles.bac %></strong></small></p>
+  </div>
+
+  <div class="box">
+    <h2>Quick actions</h2>
+    <p>Try these:</p>
+    <ul>
+      <li>Search (XSS demo): <a href="/search">/search</a></li>
+      <li>User accounts: <a href="/user/accounts">/user/accounts</a></li>
+      <li>Admin accounts: <a href="/admin/accounts">/admin/accounts</a></li>
+    </ul>
+  </div>
+</body>
+</html>
