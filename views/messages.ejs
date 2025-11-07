@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Messages (Stored XSS demo)</title>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    .msg { border:1px solid #ddd; padding:8px; margin:8px 0; }
+    .vuln { border:1px dashed #c00; padding:8px; background:#fff7f7; }
+  </style>
+</head>
+<body>
+  <a href="/">Home</a> | <a href="/search">Search</a>
+  <h1>Messages (Stored XSS demo)</h1>
+
+  <form method="post" action="/messages">
+    <label>Message (HTML allowed when XSS enabled):</label><br/>
+    <textarea name="message" rows="3" cols="80"></textarea><br/>
+    <button type="submit">Submit message</button>
+  </form>
+
+  <h2>All messages</h2>
+
+  <% if (messages.length === 0) { %>
+    <p>No messages yet.</p>
+  <% } %>
+
+  <% messages.forEach(m => { %>
+    <div class="<%= toggles && toggles.xss ? 'vuln' : 'msg' %>">
+      <strong><%= m.author %></strong> wrote:
+      <div>
+        <% if (toggles && toggles.xss) { %>
+          <!-- VULNERABLE: render raw content (stored XSS) -->
+          <div><%- m.text %></div>
+        <% } else { %>
+          <!-- SAFE: escape output -->
+          <div><%= m.text %></div>
+        <% } %>
+      </div>
+    </div>
+  <% }) %>
+
+</body>
+</html>

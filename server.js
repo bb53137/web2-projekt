@@ -110,6 +110,11 @@ const accountsDB = {
   user: [{ id: 2, name: 'Alice', balance: 50 }, { id: 3, name: 'Bob', balance: 30 }]
 };
 
+// in-memory messages for stored XSS demo
+const messages = []; // svaki element: { id: number, text: string, author: string }
+let nextMessageId = 1;
+
+
 // user accounts (sve dok je ruta dostupna za prikaz vlastitih user acc)
 app.get('/user/accounts', (req, res) => {
   res.render('accounts', {
@@ -171,6 +176,27 @@ app.get('/logout', (req, res) => {
     // ignore error, redirect anyway
     res.clearCookie('connect.sid');
     res.redirect('/');
+  });
+});
+
+
+// POST: submit message (from index page or messages page)
+app.post('/messages', (req, res) => {
+  const text = req.body.message || '';
+  const author = (req.session.user && req.session.user.username) || 'guest';
+
+  // simple store — no sanitization (this is intentionally vulnerable when xss toggle is ON)
+  messages.push({ id: nextMessageId++, text, author });
+
+  res.redirect('/messages');
+});
+
+// GET: view stored messages
+app.get('/messages', (req, res) => {
+  res.render('messages', {
+    user: req.session.user,
+    toggles: req.session.toggles,
+    messages
   });
 });
 

@@ -18,15 +18,14 @@
   <a href="/search">Search</a> |
   <a href="/user/accounts">User accounts</a> |
   <a href="/admin/accounts">Admin accounts</a> |
+  <a href="/messages">Messages</a> |
   <% if (user && user.username) { %>
-    <!-- forma šalje POST na /logout -->
-    <form method="post" action="/logout" style="display:inline; margin:0; padding:0;">
-      <button type="submit">Logout</button>
-    </form>
+    <form method="post" action="/logout" style="display:inline"><button type="submit">Logout</button></form>
   <% } else { %>
     <a href="/login">Login</a>
   <% } %>
 </nav>
+
 
 
   <div class="box">
@@ -34,7 +33,7 @@
     <form method="post" action="/toggle">
       <label>
         <input type="checkbox" name="xss" <%= toggles.xss ? 'checked' : '' %> />
-        Reflected XSS enabled
+        Stored XSS enabled
       </label><br/>
       <label>
         <input type="checkbox" name="bac" <%= toggles.bac ? 'checked' : '' %> />
