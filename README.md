@@ -91,8 +91,15 @@ Stored XSS: server sprema poruke točno onako kako su poslani (messages.push({ t
 
 BAC: ruta /admin/accounts provjerava req.session.toggles.bac. Ako je ON, vraća admin račune svima (ranjivo). Ako je OFF, provjerava req.session.user.role === 'admin' i vraća 403 za neautorizirane.
 
+Persistencija prekidača i SESSION_SECRET
 
+Aplikacija sprema stanje prekidača (XSS/BAC) u potpisane kolačiće kako bi postavke ostale i nakon restarta instance (na Renderu) pomoću cookie-parser i tajne SESSION_SECRET.
+U produkciji (Render) postavi se env varijabla SESSION_SECRET na neki random generirani string.Taj se tajna koristi za potpisivanje kolačića i sprječavanje manipulacije. Ako  nije NODE_ENV=production i SESSION_SECRET nije postavljen, aplikacija sr neće pokrenuti (sigurnosni razlozi).
+
+Lokalno nije obavezno imati .env, aplikacija ima razvojni fallback (dev-secret-change-me) pa radi bez dodatne konfiguracije, ali se može okalno stvoriti .env sa SESSION_SECRET=... za isto ponašanje. 
+
+Za deploy na Renderu, dodala sam SESSION_SECRET u Environment Variables i deployala, aplikacija će koristiti signed cookies za trajnu pohranu prekidača i neće izgubiti postavke pri restartu instance.
 
 Start: npm start
 
-U settings hosta postavi environment variable SESSION_SECRET na jaku tajnu (app će pod NODE_ENV=production zahtijevati da varijabla postoji).
+
