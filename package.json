@@ -19,6 +19,7 @@
   "homepage": "https://github.com/bb53137/web2-projekt#readme",
   "dependencies": {
     "body-parser": "^2.2.0",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "ejs": "^3.1.10",
     "express": "^5.1.0",

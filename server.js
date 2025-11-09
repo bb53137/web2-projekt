@@ -1,9 +1,14 @@
+
 require('dotenv').config();
 
 const express = require('express');
 const session = require('express-session');
+const cookieParser = require('cookie-parser');
 
 const app = express();
+// simple session, za prekidače i login
+const isProd = process.env.NODE_ENV === 'production';
+const SESSION_SECRET = process.env.SESSION_SECRET;
 
 
 app.set('view engine', 'ejs');
@@ -14,9 +19,10 @@ app.use(express.static('public'));
 
 app.use(express.urlencoded({ extended: false }));
 
-// simple session, za prekidače i login
-const isProd = process.env.NODE_ENV === 'production';
-const SESSION_SECRET = process.env.SESSION_SECRET;
+// cookie-parser za signed cookies ( isti secret)
+app.use(cookieParser(SESSION_SECRET || 'dev-secret-change-me'));
+
+
 
 // Sigurnosne provjere
 if (isProd && !SESSION_SECRET) {
@@ -39,16 +45,28 @@ app.use(session({
   }
 }));
 
-//  toggles and user exist in session
 app.use((req, res, next) => {
-  if (!req.session.toggles) {
-    // default: ranjivosti aktivirane
-    req.session.toggles = { xss: true, bac: true };
+  // 1) Pokušaj učitati prekidače iz signed cookie-ja
+  let togglesFromCookie = null;
+  try {
+    if (req.signedCookies && req.signedCookies.toggles) {
+      togglesFromCookie = JSON.parse(req.signedCookies.toggles);
+    }
+  } catch (e) {
+    // ako je cookie oštećen, ignoriramo
+    togglesFromCookie = null;
   }
+
+  // 2) Ako u sessionu nema prekidača -  uzmi iz cookieja ili postavi default
+  if (!req.session.toggles) {
+    req.session.toggles = togglesFromCookie || { xss: true, bac: true };
+  }
+
+  // 3) Ako nema user-a u sessionu - guest
   if (!req.session.user) {
-    // default user guest
     req.session.user = { username: null, role: 'guest' };
   }
+
   next();
 });
 
@@ -67,13 +85,25 @@ app.get('/', (req, res) => {
 
 // POST handler za spremanje prekidača (checkbox)
 app.post('/toggle', (req, res) => {
-  // Checkbox šalje "on" kada je označen. Ako nije prisutan -> false.
-  req.session.toggles.xss = !!req.body.xss;
-  req.session.toggles.bac = !!req.body.bac;
-  // nakon spremanja vratimo se na home stranicu tj index.ejs
+  const newToggles = {
+    xss: !!req.body.xss,
+    bac: !!req.body.bac
+  };
+
+  // spremi u session
+  req.session.toggles = newToggles;
+
+  // spremi i u signed cookie (30 dana)
+  res.cookie('toggles', JSON.stringify(newToggles), {
+    httpOnly: true,           // nije dostupno JS-u u pregledniku 
+    signed: true,             // potpisan cookie
+    sameSite: 'lax',
+    secure: isProd,           // na Renderu je HTTPS true
+    maxAge: 1000 * 60 * 60 * 24 * 30 // 30 dana
+  });
+
   res.redirect('/');
 });
-
 
 
 app.get('/login', (req, res) => {
