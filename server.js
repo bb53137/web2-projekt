@@ -5,16 +5,16 @@ const session = require('express-session');
 
 const app = express();
 
-// view engine
+
 app.set('view engine', 'ejs');
 
-// static files (public folder)
+
 app.use(express.static('public'));
 
-// body parsing for forms (minimal)
+
 app.use(express.urlencoded({ extended: false }));
 
-// simple session (koristit ću za prekidače i login kasnije)
+// simple session, za prekidače i login
 const isProd = process.env.NODE_ENV === 'production';
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
@@ -26,7 +26,7 @@ if (!isProd && !SESSION_SECRET) {
   console.warn('[WARN] SESSION_SECRET missing. Using weak fallback. Do NOT use in production.');
 }
 
-// Session middleware
+// session middleware
 app.use(session({
   secret: SESSION_SECRET || 'dev-secret-change-me',
   resave: false,
@@ -39,23 +39,23 @@ app.use(session({
   }
 }));
 
-// ---- NEW: ensure toggles and user exist in session ----
+//  toggles and user exist in session
 app.use((req, res, next) => {
   if (!req.session.toggles) {
-    // default: vulnerabilities enabled 
+    // default: ranjivosti aktivirane
     req.session.toggles = { xss: true, bac: true };
   }
   if (!req.session.user) {
-    // default guest user
+    // default user guest
     req.session.user = { username: null, role: 'guest' };
   }
   next();
 });
 
 
-// ------------------------------------------------------
 
-// root ruta — prikazuje index.ejs iz views
+
+// root ruta index.ejs iz views
 app.get('/', (req, res) => {
   res.render('index', {
     user: req.session.user,
@@ -70,19 +70,19 @@ app.post('/toggle', (req, res) => {
   // Checkbox šalje "on" kada je označen. Ako nije prisutan -> false.
   req.session.toggles.xss = !!req.body.xss;
   req.session.toggles.bac = !!req.body.bac;
-  // nakon spremanja vratimo na home
+  // nakon spremanja vratimo se na home stranicu tj index.ejs
   res.redirect('/');
 });
 
 
-// (kasnije ćemo dodati /login, /search, /user/accounts, /admin/accounts)
+
 app.get('/login', (req, res) => {
   res.render('login', { user: req.session.user, error: null });
 });
 
 app.post('/login', (req, res) => {
   const { username, password } = req.body || {};
-  // simple demo credentials
+  // jednostavno za demo
   if (username === 'admin' && password === 'adminpwd') {
     req.session.user = { username: 'admin', role: 'admin' };
     return res.redirect('/');
@@ -94,28 +94,19 @@ app.post('/login', (req, res) => {
 });
 
 
-app.get('/search', (req, res) => {
-  const query = req.query.q;
 
-  res.render('search', {
-    user: req.session.user,
-    xssEnabled: req.session.toggles.xss,
-    query
-  });
-});
-
-// Demo "baza" podataka (in-memory)
+// Demo baza podataka (in-memory)
 const accountsDB = {
   admin: [{ id: 1, name: 'Admin Account', balance: 10000 }],
   user: [{ id: 2, name: 'Alice', balance: 50 }, { id: 3, name: 'Bob', balance: 30 }]
 };
 
-// in-memory messages for stored XSS demo
+// in-memory poruke za pohranjeni XSS demo
 const messages = []; // svaki element: { id: number, text: string, author: string }
 let nextMessageId = 1;
 
 
-// user accounts (sve dok je ruta dostupna za prikaz vlastitih user acc)
+// user accounts
 app.get('/user/accounts', (req, res) => {
   res.render('accounts', {
     user: req.session.user,
@@ -124,12 +115,12 @@ app.get('/user/accounts', (req, res) => {
   });
 });
 
-// admin accounts (ovisi o toggles.bac)
+// admin accounts (ovisi o prekidačima)
 app.get('/admin/accounts', (req, res) => {
   const bacEnabled = req.session.toggles && req.session.toggles.bac;
 
   if (bacEnabled) {
-    // RANJIVO: bez provjere role -> svatko vidi admin račune
+    // RANJIVO: bez provjere uloge -> svatko vidi admin račune
     return res.render('accounts', {
       user: req.session.user,
       accounts: accountsDB.admin,
@@ -137,7 +128,7 @@ app.get('/admin/accounts', (req, res) => {
     });
   }
 
-  // SIGURNO: provjeri server-side role
+  // SIGURNO: provjeri uloge
   if (req.session.user && req.session.user.role === 'admin') {
     return res.render('accounts', {
       user: req.session.user,
@@ -146,7 +137,7 @@ app.get('/admin/accounts', (req, res) => {
     });
   }
 
-  // ako nije admin i bac isključen -> 403
+  // ako nije admin i prekidač isključen -> 403
   return res.status(403).send(`
     <h2>403 Forbidden - You do not have access to this resource</h2>
     <p><a href="/">Back</a></p>
@@ -154,9 +145,9 @@ app.get('/admin/accounts', (req, res) => {
 });
 
 
-// POST logout - destroy session properly
+// POST logout - uništi session pravilno
 app.post('/logout', (req, res) => {
-  // destroy the session on the server
+  // na serveru
   req.session.destroy(err => {
     if (err) {
       console.error('Session destroy error:', err);
@@ -164,34 +155,34 @@ app.post('/logout', (req, res) => {
       req.session = null;
       return res.redirect('/');
     }
-    // clear cookie on client
+    // očisti cookie na klijentu
     res.clearCookie('connect.sid'); // default cookie name used by express-session
     return res.redirect('/');
   });
 });
 
-// OPTIONAL: convenience GET logout (less RESTful but handy during testing)
+
 app.get('/logout', (req, res) => {
   req.session.destroy(err => {
-    // ignore error, redirect anyway
+    // ignoriaj error, redirect anyway
     res.clearCookie('connect.sid');
     res.redirect('/');
   });
 });
 
 
-// POST: submit message (from index page or messages page)
+// POST: submit message  from messages page
 app.post('/messages', (req, res) => {
   const text = req.body.message || '';
   const author = (req.session.user && req.session.user.username) || 'guest';
 
-  // simple store — no sanitization (this is intentionally vulnerable when xss toggle is ON)
+  // jednist pohranjivanje — no sanitization (namjerno ranjivo kad je xss toggle upaljen)
   messages.push({ id: nextMessageId++, text, author });
 
   res.redirect('/messages');
 });
 
-// GET: view stored messages
+// GET: vidi pohranjene poruke
 app.get('/messages', (req, res) => {
   res.render('messages', {
     user: req.session.user,

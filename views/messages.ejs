@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <a href="/">Home</a> | <a href="/search">Search</a>
+  <a href="/">Home</a> 
   <h1>Messages (Stored XSS demo)</h1>
 
   <form method="post" action="/messages">
@@ -30,10 +30,10 @@
       <strong><%= m.author %></strong> wrote:
       <div>
         <% if (toggles && toggles.xss) { %>
-          <!-- VULNERABLE: render raw content (stored XSS) -->
+          <!-- ranjivo: render raw content (pohranjeni XSS) -->
           <div><%- m.text %></div>
         <% } else { %>
-          <!-- SAFE: escape output -->
+          <!-- sigurno: escape output -->
           <div><%= m.text %></div>
         <% } %>
       </div>
